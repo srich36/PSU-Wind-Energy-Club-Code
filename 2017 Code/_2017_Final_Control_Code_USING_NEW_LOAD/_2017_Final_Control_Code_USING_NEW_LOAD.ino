@@ -110,6 +110,7 @@ void loop() {
   }
 }
 
+//Don't worry about this function it doesn't do anything; they wrote it and never fully implemented it
 boolean voltageConsistentlyDifferent(double turbineVoltage, double loadVoltage) {
   static double differences[7] = { 0, 0, 0, 0, 0, 0, 0};
   double voltageRatio;
@@ -134,6 +135,7 @@ boolean voltageConsistentlyDifferent(double turbineVoltage, double loadVoltage) 
   return ( count >= 6 );
 }
 
+//Pretty sure this is voltage produced at a given wind speed with pitch angles from 75-85
 const double voltageData[8][11] =  { // 75 - 85
   { 14.12,  16.66, 17.83, 17.91, 18.62, 18.76, 18.86, 19.02, 19.23, 19.23, 19.53 }, //5
   { 23.55,  23.91, 24.02, 24.22, 24.24, 24.75, 24.50, 24.41, 24.51, 24.27, 24.25 }, //6
@@ -144,6 +146,8 @@ const double voltageData[8][11] =  { // 75 - 85
   { 46.87,  46.25, 46.14, 45.84, 45.86, 45.34, 44.91, 44.09, 44.33, 43.88, 43.24 }, //11
   { 50,     49,    49,    49,    48.86, 48.34, 47.91, 47.09, 47.33, 46.88, 46.24 }  // Guesses at 12 (add three)
 };
+
+
 
 double inferWindSpeed(int currentBladePitch, double turbineVoltage){
   int i = -1;

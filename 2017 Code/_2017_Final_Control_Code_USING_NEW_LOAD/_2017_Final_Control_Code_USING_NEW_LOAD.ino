@@ -54,7 +54,7 @@ void loop() {
 
   // Part 1 - Acquire data from sensors
   turbineVoltage = VOLTAGE_DIVIDER_TURBINE*((double)analogRead(A0))*5.0/1023.0;
-  loadVoltage = RESISTOR_SCALING_FACTOR*VOLTAGE_DIVIDER_LOAD*((double)analogRead(A3))*5.0/1023.0;
+  //loadVoltage = RESISTOR_SCALING_FACTOR*VOLTAGE_DIVIDER_LOAD*((double)analogRead(A3))*5.0/1023.0;
   killSwitch = (digitalRead(A1) == LOW);
 
   // Part 2 - Business Logic.

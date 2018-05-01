@@ -79,20 +79,35 @@ void determinePitch(double turbineVoltage){
   }
   
   else{
+    
+    //For debugging
     Serial.println("Edge case we have not accounted for. ");
     Serial.print("Turbine Voltage is: ");
     Serial.println(turbineVoltage);
     Serial.print("And voltage before is: ");
     Serial.println(turbineVoltageBefore);
+    //For debugging
   }
   
 }
 
 int calculateDutyCycle(double turbineVoltage){
   if(turbineVoltage > 5){
+    
+    //For debugging
+    Serial.print("Sending a duty cycle of: ");
+    Serial.println((255*DUTY_CYCLE_RATIO)/turbineVoltage);
+    //For debugging
+    
     return int((255*DUTY_CYCLE_RATIO)/turbineVoltage);
+    
   }
   else{
+    
+    //For debugging
+    Serial.println("Not sure if this should ever get in this else loop. Sending a fully on duty cycle just in case. ");
+    //For debugging
+    
     return 255; //Max duty cycle 
   }
   

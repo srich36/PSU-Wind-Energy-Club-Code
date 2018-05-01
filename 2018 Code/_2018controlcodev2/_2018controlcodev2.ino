@@ -54,7 +54,7 @@
 const int PWM_PIN = 3;               //Digital
 const int LOAD_ARDUINO_PIN = 8;      //Digital 
 const int SERVO_PITCH_PIN = 9;        //Digital
-const int KILL_SWITCH_PIN = 1;        //Digital
+// const int KILL_SWITCH_PIN = 1;        //Digital but not on this arduino
 const int TURBINE_vOLTAGE_PIN = 0;    //Analog
 const int PWM_CONVERSION = 255;       //the arduino operates on a 0-255 scale for pwm so the duty cycle needs to be within this range
 const int FIVE_TO_SEVEN_PITCH_ANGLE = 61;
@@ -91,8 +91,13 @@ void pitchToPitchAngleBucket(double windSpeed);
 
 void setup(){
   Serial.begin(9600);
+  
+  //Change the timer settings
+  TCCR2B = TCCR2B & 0b11111000 | 0x01;
+  
   pinMode(PWM_PIN, OUTPUT);  //Configures PWM pin as output
   pinMode(LOAD_ARDUINO_PIN, INPUT);
+  
   //pinMode(servoPitch, OUTPUT);  Don't think I need this //configures servo pin as output
   //pinMode(A0, INPUT);   //But don't think so because I'm calling analog read on them
   pitch.attach(SERVO_PITCH_PIN);
@@ -100,13 +105,21 @@ void setup(){
   Serial.println("Beginning the control system code");
   if(EEPROM.read(0)){
     pitch.write(EEPROM.read(0+1));
+    currentPitch = EEPROM.read(0+1);
   }
   else{
     pitch.write(STARTUP_PITCH);
+    currentPitch = STARTUP_PITCH;
   }
 }
 
 void loop(){
+  
+  //For debugging
+  Serial.print("Starting a new loop current pitch is currently equal to: ");
+  Serial.print(currentPitch);
+  //For debugging
+  
 
   //****************************************************//
   //*****Variables to be used in the control system*****//
@@ -120,21 +133,41 @@ void loop(){
   int dutyCycle;
 
   if(digitalRead(LOAD_ARDUINO_PIN) == HIGH){
+    
+    //NEEDS TESTING
+    
+    Serial.println("Kill switch hit, turbine ready to be braked.");
     breakNeeded = true;
     processDisconnectedState(breakNeeded);
   }
   else
     breakNeeded = false; 
   turbineVoltage = VOLTAGE_DIVIDER_TURBINE*((double)analogRead(A0))*5.0/1023.0;
+  
+  //For testing
+  Serial.print("Reading in a voltage of: ");
+  Serial.println(turbineVoltage);
+  //For testing
+  
   RPM = getRPMfromVoltageIn(turbineVoltage);
-  power = calculatePowerFromRPM(RPM);                           
+  
+  
+  
+  power = calculatePowerFromRPM(RPM); 
+
+  //For testing
+  Serial.print("Calculated power to be: ");
+  Serial.println(power);
+  //For testing
+ 
+  
   inferredWindSpeed = inferWindSpeed(turbineVoltage, RPM, power);
   if(inferredWindSpeed < 11){
     dutyCycle = calculateDutyCycle(RESISTANCE, calculatePowerFromRPM(RPM), turbineVoltage);
     analogWrite(PWM_PIN, dutyCycle);
   }
   else{
-    dutyCycle = calculateDutyCycle(RESISTANCE, POWER_AT_11MS, turbineVoltage); //Placeholder to find out duty cycle given constant power. Depends on answers to the above questions
+    dutyCycle = calculateDutyCycle(RESISTANCE, POWER_AT_11MS, turbineVoltage); 
     analogWrite(PWM_PIN, dutyCycle);
   }
 
@@ -143,6 +176,7 @@ void loop(){
 
 void processDisconnectedState(boolean disconnected){
   if(disconnected){
+    Serial.println("Braking the turbine!");
     breakedInCompetition = true;
     EEPROM.write(0,breakedInCompetition);
     EEPROM.write(0+1,currentPitch);
@@ -157,12 +191,32 @@ void processDisconnectedState(boolean disconnected){
 }
 
 double inferWindSpeed(double voltageIn, double RPM, double power){
-  return 0;
+  
+  
+   //For debugging
+  Serial.print("Input voltage of: ");
+  Serial.println(voltageIn);
+  Serial.print("Calculating a power of: ");
+  Serial.println(power);
+  Serial.print("Estimating a wind speed of: ");
+  Serial.println(4.09+5.16*power+.077*pow(power,2)+.0462*pow(power,3));
+  //For debugging
+  
+  return 4.09+5.16*power+.077*pow(power,2)+.0462*pow(power,3);
 }
 
 
 
 double getRPMfromVoltageIn(double turbineVoltage){
+  
+  //For debugging
+  Serial.print("Input voltage of: ");
+  Serial.println(turbineVoltage);
+  Serial.print("Calculating an RPM of: ");
+  Serial.println(108*turbineVoltage-462);
+  //For debugging
+  
+  
   return 108*turbineVoltage-462; //Placeholder for more data that needs to go in here.
 }
 

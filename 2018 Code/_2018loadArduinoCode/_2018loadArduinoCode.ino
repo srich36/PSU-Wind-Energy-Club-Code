@@ -28,6 +28,14 @@ void setup(){
 void loop(){
   double turbineVoltage = VOLTAGE_DIVIDER_TURBINE*((double)analogRead(A0))*5.0/1023.0; //Attach the turbine voltage reading on pin A0
   double loadVoltage = VOLTAGE_DIVIDER_LOAD*((double)analogRead(A1))*5.0/1023.0;  //Attach the load voltage reading on A1
+  
+  //For debugging
+  Serial.print("Reading the turbine Voltage as: ");
+  Serial.println(turbineVoltage);
+  Serial.print("Reading the load voltage as: ");
+  Serial.println(loadVoltage);
+  //For debugging
+  
   boolean pccDisconnect = determineDisconnect(loadVoltage, turbineVoltage);
   boolean killSwitchHit = (digitalRead(A1) == LOW); //this may need to be changed to high depending on how we implement the switch
   
@@ -49,8 +57,18 @@ void loop(){
       //This means the kill switch was flipped back off and we are ready to begin pitching and producing power
       
       digitalWrite(MOSFET_SIGNAL_PIN, HIGH); //turn on the mosfet
+      
+      //For debugging
+      Serial.println("Turning the Mosfet on");
+      //For debugging
+      
       delay(10000);                         //Wait 10 secons
       digitalWrite(MOSFET_SIGNAL_PIN, LOW); //turn mosfet back off
+      
+      //For debugging
+      Serial.println("Turbin the mosfet off");
+      //For debugging
+      
       killSwitchState = killSwitchHit;      //reset the states so that they are equal
     }
   }
@@ -66,6 +84,12 @@ void loop(){
   if(pccDisconnect){
     //send a signal to the control arduino to break
     mosfetOn = true;
+    
+    //For debugging
+    Serial.println("PCC Disconnected. Turning the Mosfet back on. ");
+    //For debugging
+    
+    
     digitalWrite(MOSFET_SIGNAL_PIN, HIGH);
   }
   else{

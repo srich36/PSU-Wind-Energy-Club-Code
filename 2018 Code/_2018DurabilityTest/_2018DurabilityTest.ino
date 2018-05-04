@@ -1,3 +1,7 @@
+//TODO: 
+//PROTECT AGAINST CASE WHERE DUTY CYCLE IS 1 AND THEORETICAL VOLTAGE CAN NEVER BE ACTUAL VOLTAGE BECAUSE OF SYSTEM LOSSES
+
+
 #include <Servo.h>
 
 const int PWM_PIN = 3; 
@@ -16,8 +20,9 @@ const double VOLTAGE_DIVIDER_TURBINE = 13.015; //This should be the same as last
 const double THEORETICAL_VS_ACTUAL_VOLTAGE_BUFFER = .3;
 
 void determinePitch(double turbineVoltage);
-int calculateDutyCycle();
+int calculateDutyCycle(double);
 void stabilizeVoltageGivenDutyCycle(int dutyCycle, double desiredVoltage);
+
 
 Servo pitch;
 
@@ -43,7 +48,21 @@ void loop(){
   
   dutyCycle = calculateDutyCycle(turbineVoltage);
   theoreticalVoltage = turbineVoltage*double(dutyCycle)/255.0;
-  analogWrite(PWM_PIN, dutyCycle);
+  if(dutyCycle >= 0 && dutyCycle <= 255){
+    analogWrite(PWM_PIN, dutyCycle);
+  }
+  else{
+    if(dutyCycle < 0){
+      dutyCycle = 0;
+      theoreticalVoltage = 0;
+      analogWrite(PWM_PIN, 0);
+    }
+    if(dutyCycle > 255){
+      dutycycle = 255;
+      theoreticalVoltage = turbineVoltage;
+      analogWrite(PWM_PIN, 255);
+    }
+  }
   stabilizeVoltageGivenDutyCycle(dutyCycle, theoreticalVoltage);
   
   
@@ -100,12 +119,25 @@ void determinePitch(double turbineVoltage){
 int calculateDutyCycle(double turbineVoltage){
   if(turbineVoltage > 5){
     
+    
     //For debugging
     Serial.print("Sending a duty cycle of: ");
-    Serial.println((255*(DUTY_CYCLE_RATIO)/turbineVoltage));
+    double theoreticalDutyCycle = (DUTY_CYCLE_RATIO)/turbineVoltage;
     //For debugging
-    
-    return int((255*DUTY_CYCLE_RATIO)/turbineVoltage);
+    if(theoreticalDutyCycle < 25){
+      return int((255)*(.000162-.114*theoreticalDutyCycle+5.68*theoreticalDutyCycle*theoreticalDutyCycle));
+    }
+    else if(theoreticalDutyCycle < .87){
+      return int((255)*(.035+1.31*theoreticalDutyCycle-.58*theoreticalDutyCycle*theoreticalDutyCycle));
+    }
+    else if(theoreticalDutyCycle <= 1){
+      return int((255)*(7.51-15.6*theoreticalDutyCycle+8.92*theoreticalDutyCycle*theoreticalDutyCycle));
+    }
+    else{
+      Serial.println("What the heck happened here? ");
+      return 255;
+      
+    }
     
   }
   else{
@@ -151,3 +183,5 @@ void stabilizeVoltageGivenDutyCycle(int dutyCycle, double desiredVoltage){
     iterations++;
   }
 }
+
+

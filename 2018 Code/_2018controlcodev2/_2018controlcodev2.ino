@@ -193,18 +193,44 @@ void loop(){
     inferredWindSpeed = inferWindSpeed(turbineVoltage, RPM, power);
     //Getting the estimated wind speed
     
-    //Processing the estimated wind speed. NEED TO EDIT TO ADJUST DUTY CYCLE PROTECT AGAINST OVERFLOWS < 0 AND > 255
+    //Processing the estimated wind speed. PROTECTED AGAINST OVERFLOWS < 0 AND > 255
     if(inferredWindSpeed < 11){
       dutyCycle = calculateDutyCycle(RESISTANCE, calculatePowerFromRPM(RPM), turbineVoltage);
       theoreticalOutputVoltage = calculateTheoreticalOutputVoltage(turbineVoltage, dutyCycle);
-      analogWrite(PWM_PIN, dutyCycle);
+      if(dutyCycle >= 0 && dutyCycle <= 255){
+        analogWrite(PWM_PIN, dutyCycle);
+      }
+      else{
+        if(dutyCycle < 0){
+          dutyCycle = 0;
+          theoreticalOutputVoltage = 0;
+          analogWrite(PWM_PIN, 0);
+        }
+        if(dutyCycle > 255){
+          dutyCycle = 255;
+          theoreticalOutputVoltage = turbineVoltage;
+          analogWrite(PWM_PIN, 255);
+        } 
       stabilizeVoltageGivenDutyCycle(dutyCycle, theoreticalOutputVoltage);
-    }
-      
+      }
+    } 
     else{
-      dutyCycle = calculateDutyCycle(RESISTANCE, POWER_AT_11MS, turbineVoltage); 
-      analogWrite(PWM_PIN, dutyCycle);
+      dutyCycle = calculateDutyCycle(RESISTANCE, POWER_AT_11MS, turbineVoltage);
+      theoreticalOutputVoltage = dutyCycle*turbineVoltage;
+      if(dutyCycle > 255){
+        dutyCycle = 255; 
+        theoreticalOutputVoltage = turbineVoltage;
+        analogWrite(PWM_PIN, dutyCycle);
+      }
+      else if(dutyCycle < 0){
+        dutyCycle = 0;
+        theoreticalOutputVoltage = 0;
+        analogWrite(PWM_PIN, 0);
+      }
+      else{
+        analogWrite(PWM_PIN, dutyCycle);
       //NEED A STABILIZE POWER AT 11 M/S
+      }
     }
     //Processing the estimated wind speed. NEED TO EDIT TO ADJUST DUTY CYCLE
   
@@ -285,17 +311,21 @@ double calculatePowerFromRPM(double RPM){
 }
 
 int calculateDutyCycle(double resistance, double power, double turbineVoltage){
-  int dutyCycle = PWM_CONVERSION*int(sqrt(resistance*power)/turbineVoltage);
-  if(dutyCycle > 255){
-    Serial.print("Over 255 duty cycle. Something is wrong. Duty cycle is equal to: ");
-    Serial.println(dutyCycle);
+  double theoreticalDutyCycle = PWM_CONVERSION*int(sqrt(resistance*power)/turbineVoltage);
+  if(theoreticalDutyCycle < 25){
+     return int((255)*(.000162-.114*theoreticalDutyCycle+5.68*theoreticalDutyCycle*theoreticalDutyCycle));
+  }
+  else if(theoreticalDutyCycle < .87){
+     return int((255)*(.035+1.31*theoreticalDutyCycle-.58*theoreticalDutyCycle*theoreticalDutyCycle));
+  }
+  else if(theoreticalDutyCycle <= 1){
+     return int((255)*(7.51-15.6*theoreticalDutyCycle+8.92*theoreticalDutyCycle*theoreticalDutyCycle));
   }
   else{
-    Serial.print("Sending a duty cycle of: ");
-    Serial.println(dutyCycle);
+     Serial.println("What the heck happened here? ");
+     return 255;
+      
   }
-  
-  return dutyCycle;
 }
 
 void pitchToPitchAngleBucket(double windSpeed){

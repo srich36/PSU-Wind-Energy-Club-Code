@@ -5,6 +5,7 @@ const int SERVO_PITCH_PIN = 9;
 const int LOWER_VOLTAGE_LIMIT = 10;
 const int UPPER_VOLTAGE_LIMIT = 15;
 const int MAINTAIN_VOLTAGE_IN = 13;
+const double VOLTAGE_DIVIDER_LOAD = 14.327;
 const int DUTY_CYCLE_RATIO = 5;
 static int currentPitch;
 
@@ -12,10 +13,11 @@ static int currentPitch;
 double turbineVoltageBefore;
 const int STARTUP_PITCH = 45; //Need to verify pitch for new turbine -> should be verified now
 const double VOLTAGE_DIVIDER_TURBINE = 13.015; //This should be the same as last year so we are good
-
+const double THEORETICAL_VS_ACTUAL_VOLTAGE_BUFFER = .3;
 
 void determinePitch(double turbineVoltage);
 int calculateDutyCycle();
+void stabilizeVoltageGivenDutyCycle(int dutyCycle, double desiredVoltage);
 
 Servo pitch;
 
@@ -30,6 +32,7 @@ void setup(){
 void loop(){
   double turbineVoltage;
   int dutyCycle;
+  double theoreticalVoltage;
   turbineVoltage = VOLTAGE_DIVIDER_TURBINE*((double)analogRead(A0))*5.0/1023.0;
   if(turbineVoltageBefore!= -1){ //This is not the first voltage reading.
     determinePitch(turbineVoltage);
@@ -39,7 +42,10 @@ void loop(){
   
   
   dutyCycle = calculateDutyCycle(turbineVoltage);
+  theoreticalVoltage = turbineVoltage*double(dutyCycle)/255.0;
   analogWrite(PWM_PIN, dutyCycle);
+  stabilizeVoltageGivenDutyCycle(dutyCycle, theoreticalVoltage);
+  
   
   //Move to the t+1 loop domain
   turbineVoltageBefore = turbineVoltage;
@@ -96,7 +102,7 @@ int calculateDutyCycle(double turbineVoltage){
     
     //For debugging
     Serial.print("Sending a duty cycle of: ");
-    Serial.println((255*DUTY_CYCLE_RATIO)/turbineVoltage);
+    Serial.println((255*(DUTY_CYCLE_RATIO)/turbineVoltage));
     //For debugging
     
     return int((255*DUTY_CYCLE_RATIO)/turbineVoltage);
@@ -112,4 +118,36 @@ int calculateDutyCycle(double turbineVoltage){
   }
   
   
+}
+
+
+
+void stabilizeVoltageGivenDutyCycle(int dutyCycle, double desiredVoltage){
+  
+  
+  int iterations = 0;
+  bool flag = true;
+  while(iterations < 50 && flag == true){
+    flag = false;
+    if(VOLTAGE_DIVIDER_LOAD*((double)analogRead(A2))*5.0/1023.0 < desiredVoltage - THEORETICAL_VS_ACTUAL_VOLTAGE_BUFFER){
+      flag = true;
+      if(dutyCycle > 0){
+        analogWrite(PWM_PIN, --dutyCycle);
+      }
+      else{
+        break;
+      }
+    }
+    else if(VOLTAGE_DIVIDER_LOAD*((double)analogRead(A2))*5.0/1023.0 > desiredVoltage + THEORETICAL_VS_ACTUAL_VOLTAGE_BUFFER){
+      flag = true;
+      if(dutyCycle < 255){
+        analogWrite(PWM_PIN, ++dutyCycle);
+      }
+      else{
+        break;
+      }
+    }
+       
+    iterations++;
+  }
 }

@@ -7,9 +7,10 @@
 
 
 const double MOSFET_BUFFER_VOLTAGE = 8.1;
-const double VOLTAGE_DIVIDER_TURBINE= 10;
+const double VOLTAGE_DIVIDER_PRE_PCC= 14.327; //From last year
 const double VOLTAGE_DIVIDER_LOAD= 10; // Need to confirm both of these values
 const int MOSFET_SIGNAL_PIN = 8;
+const int CONTROL_ARDUINO_PIN = 9;
 const int KILL_SWITCH_PIN = 11;        //Generic pin values that we can figure out
 const double VOLTAGE_DIFFERENT_BUFFER = .5;
 const double LOAD_VOTLAGE_BUFFER = .5;
@@ -22,21 +23,24 @@ boolean determineDisconnect(double loadVoltage, double turbineVoltage);
 void setup(){
   pinMode(MOSFET_SIGNAL_PIN, OUTPUT);
   pinMode(KILL_SWITCH_PIN, INPUT);
+  pinMode(CONTROL_ARDUINO_PIN, OUTPUT);
   digitalWrite(MOSFET_SIGNAL_PIN, LOW);
 }
 
 void loop(){
-  double turbineVoltage = VOLTAGE_DIVIDER_TURBINE*((double)analogRead(A0))*5.0/1023.0; //Attach the turbine voltage reading on pin A0
+  double prePCCVoltage= VOLTAGE_DIVIDER_PRE_PCC*((double)analogRead(A0))*5.0/1023.0; //Attach the turbine voltage reading on pin A0
   double loadVoltage = VOLTAGE_DIVIDER_LOAD*((double)analogRead(A1))*5.0/1023.0;  //Attach the load voltage reading on A1
   
   //For debugging
-  Serial.print("Reading the turbine Voltage as: ");
-  Serial.println(turbineVoltage);
+  Serial.print("Reading the pre pcc Voltage as: ");
+  Serial.println(prePCCVoltage);
   Serial.print("Reading the load voltage as: ");
   Serial.println(loadVoltage);
   //For debugging
   
-  boolean pccDisconnect = determineDisconnect(loadVoltage, turbineVoltage);
+  //Test this part first initially.
+  
+  boolean pccDisconnect = determineDisconnect(loadVoltage, prePCCVoltage);
   boolean killSwitchHit = (digitalRead(A1) == LOW); //this may need to be changed to high depending on how we implement the switch
   
   
@@ -50,6 +54,7 @@ void loop(){
   
   if(killSwitchHit){
     killSwitchState = true;
+    digitalWrite(CONTROL_ARDUINO_PIN, HIGH);
     //send a signal to the control arduino to break.
   }
   else{
@@ -94,7 +99,7 @@ void loop(){
   }
   else{
     if(mosfetOn){
-      if(turbineVoltage-loadVoltage > VOLTAGE_DIFFERENT_BUFFER && loadVoltage > MOSFET_BUFFER_VOLTAGE){
+      if(prePCCVoltage-loadVoltage > VOLTAGE_DIFFERENT_BUFFER && loadVoltage > MOSFET_BUFFER_VOLTAGE){
         digitalWrite(MOSFET_SIGNAL_PIN, LOW);
         mosfetOn = false;
       }

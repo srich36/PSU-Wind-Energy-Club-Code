@@ -1,8 +1,6 @@
 //TODO: 
 //     1. Test EEPROM memory. 
-//     2. Figure out how to write the infer wind speed function
-//     3. Confirm pin constants
-//     4. Figure out more logic to control how pitch works after 10m/s
+//     2. DOES THE MOSFET SEND POWER BACK WHEN THE PCC IS DISCONNECTED?
 
 
 
@@ -115,6 +113,7 @@ void setup(){
   
   //CHECKING IF KILL SWITCH IS HIT
   if(digitalRead(A2 == HIGH)){  //because the circuit is normally closed. High means the kill switch is not hit
+    digitalWrite(LOAD_ARDUINO_PIN, HIGH);
     if(EEPROM.read(0)){
       pitch.write(EEPROM.read(0+1));
       currentPitch = EEPROM.read(0+1);
@@ -124,6 +123,11 @@ void setup(){
       currentPitch = STARTUP_PITCH;
     }
   }
+  else{
+    digitalWrite(LOAD_ARDUINO_PIN, LOW);
+  }
+  //if the kill switch is hit don't pitch at all. Does this work or do we need 8 Volts? 
+  
   //CHECKING IF KILL SWITCH IS HIT
 }
 
@@ -151,12 +155,13 @@ void loop(){
   if(digitalRead(A2 == LOW) ){ //Kill switch is hit, don't do anything on this loop
     
     //NEEDS TESTING
-    
+    digitalWrite(LOAD_ARDUINO_PIN, LOW);
     Serial.println("Kill switch is hit. Turbine is braking or is already braked.");
     breakNeeded = true;
     processDisconnectedState(breakNeeded);
   }
   else{
+    
     //Kill switch not hit
     breakNeeded = false;
     //Kill switch not hit
@@ -270,6 +275,7 @@ void processDisconnectedState(boolean disconnected){
   }
   else{
     breakedInCompetition = false;
+    digitalWrite(LOAD_ARDUINO_PIN, HIGH);
     EEPROM.write(0,breakedInCompetition);
   }
   delay(10000);

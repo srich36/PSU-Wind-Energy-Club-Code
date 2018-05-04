@@ -58,7 +58,7 @@ void loop(){
       analogWrite(PWM_PIN, 0);
     }
     if(dutyCycle > 255){
-      dutycycle = 255;
+      dutyCycle = 255;
       theoreticalVoltage = turbineVoltage;
       analogWrite(PWM_PIN, 255);
     }
